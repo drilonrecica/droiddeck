@@ -1,5 +1,6 @@
 import { Command } from "commander";
 import { clearCommand } from "./commands/clear.js";
+import { dashboardCommand } from "./commands/dashboard.js";
 import { deviceCommand } from "./commands/device.js";
 import { devicesCommand } from "./commands/devices.js";
 import { doctorCommand } from "./commands/doctor.js";
@@ -20,9 +21,7 @@ export async function runProgram(argv: string[]): Promise<void> {
     .name("droiddeck")
     .description("Terminal dashboard and CLI command center for native Android development.")
     .version("0.1.0")
-    .action(() => {
-      console.log("DroidDeck TUI dashboard is not implemented yet.");
-    });
+    .action(dashboardCommand);
 
   program.command("doctor").description("Run project and environment checks.").action(doctorCommand);
   program.command("variants").description("Print discovered Android variants.").action(variantsCommand);
