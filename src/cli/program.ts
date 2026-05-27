@@ -5,13 +5,13 @@ import { devicesCommand } from "./commands/devices.js";
 import { doctorCommand } from "./commands/doctor.js";
 import { killCommand } from "./commands/kill.js";
 import { launchCommand } from "./commands/launch.js";
+import { logsCommand } from "./commands/logs.js";
 import { runCommand } from "./commands/run.js";
 import { screenshotCommand } from "./commands/screenshot.js";
 import { uninstallCommand } from "./commands/uninstall.js";
 import { useCommand } from "./commands/use.js";
 import { variantsCommand } from "./commands/variants.js";
 import {
-  logsCommand,
   testCommand,
 } from "./commands/stubs.js";
 
@@ -40,7 +40,15 @@ export async function runProgram(argv: string[]): Promise<void> {
     .option("--device <id>", "Use device for this run.")
     .description("Install and launch a variant.")
     .action(runCommand);
-  program.command("logs").argument("[variantOrAlias]").description("Stream filtered logcat output.").action(logsCommand);
+  program
+    .command("logs")
+    .argument("[variantOrAlias]")
+    .option("--errors", "Show errors only.")
+    .option("--warnings", "Show warnings and errors.")
+    .option("--all", "Show all log lines.")
+    .option("--device <id>", "Use device for logs.")
+    .description("Stream filtered logcat output.")
+    .action(logsCommand);
   program.command("test").argument("[variantOrAlias]").description("Run tests for a variant.").action(testCommand);
   program.command("clear").argument("[variantOrAlias]").option("--device <id>").description("Clear app data.").action(clearCommand);
   program.command("launch").argument("[variantOrAlias]").option("--device <id>").description("Launch app.").action(launchCommand);

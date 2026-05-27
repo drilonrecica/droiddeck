@@ -7,6 +7,13 @@ export type RunCommandOptions = {
   input?: string;
   reject?: boolean;
   onLine?: (line: string) => void;
+  maxOutputLines?: number;
+};
+
+export type StreamingCommand = {
+  command: string;
+  done: Promise<CommandResult>;
+  stop: () => void;
 };
 
 export async function runCommand(file: string, args: readonly string[] = [], options: RunCommandOptions = {}): Promise<CommandResult> {
@@ -23,7 +30,7 @@ export async function runCommand(file: string, args: readonly string[] = [], opt
   const subprocess = execa(file, [...args], execaOptions);
   subprocess.all?.on("data", (chunk: Buffer) => {
     for (const line of splitLines(chunk.toString())) {
-      outputLines.push(line);
+      pushBounded(outputLines, line, options.maxOutputLines);
       options.onLine?.(line);
     }
   });
@@ -38,6 +45,38 @@ export async function runCommand(file: string, args: readonly string[] = [], opt
     stdout,
     stderr,
     outputLines: outputLines.length > 0 ? outputLines : splitLines([stdout, stderr].filter(Boolean).join("\n"))
+  };
+}
+
+export function streamCommand(file: string, args: readonly string[] = [], options: RunCommandOptions = {}): StreamingCommand {
+  const command = [file, ...args].join(" ");
+  const outputLines: string[] = [];
+  const subprocess = execa(file, [...args], {
+    cwd: options.cwd,
+    env: options.env,
+    reject: options.reject ?? false,
+    all: true
+  });
+
+  subprocess.all?.on("data", (chunk: Buffer) => {
+    for (const line of splitLines(chunk.toString())) {
+      pushBounded(outputLines, line, options.maxOutputLines);
+      options.onLine?.(line);
+    }
+  });
+
+  return {
+    command,
+    done: subprocess.then((result) => ({
+      command,
+      exitCode: result.exitCode ?? 0,
+      stdout: typeof result.stdout === "string" ? result.stdout : "",
+      stderr: typeof result.stderr === "string" ? result.stderr : "",
+      outputLines
+    })),
+    stop: () => {
+      subprocess.kill("SIGTERM");
+    }
   };
 }
 
@@ -63,6 +102,13 @@ export async function runCommandBinary(file: string, args: readonly string[] = [
 
 function splitLines(value: string): string[] {
   return value.split(/\r?\n/).filter((line) => line.length > 0);
+}
+
+function pushBounded(lines: string[], line: string, maxLines = Number.POSITIVE_INFINITY): void {
+  lines.push(line);
+  if (lines.length > maxLines) {
+    lines.splice(0, lines.length - maxLines);
+  }
 }
 
 function toBuffer(value: unknown): Buffer {

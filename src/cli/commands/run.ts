@@ -3,6 +3,7 @@ import { selectVariantBuildTask } from "../../core/buildWorkflow.js";
 import { runGradle } from "../../core/gradle.js";
 import { DroidDeckError } from "../../utils/errors.js";
 import { loadCommandContext, resolveContextApplicationId, resolveContextDevice, resolveContextVariant } from "../context.js";
+import { runLogStream } from "./logs.js";
 
 type RunOptions = {
   fresh?: boolean;
@@ -54,6 +55,6 @@ export async function runCommand(variantOrAlias: string | undefined, options: Ru
   console.log(`Launched ${applicationId} on ${device.id}.`);
 
   if (options.watch) {
-    console.log("Log watching will be available after Phase 8 is implemented.");
+    await runLogStream(device.id, context.config.logcat.defaultMode, context.config.logcat.tags, applicationId);
   }
 }
