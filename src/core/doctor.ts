@@ -3,7 +3,9 @@ import fs from "fs-extra";
 import type { DoctorCheck } from "../types/doctor.js";
 import type { DroidDeckConfig } from "../types/config.js";
 import type { AndroidVariant } from "../types/variant.js";
+import { isAdbAvailable } from "./adb.js";
 import { loadConfig } from "./config.js";
+import { listDevices } from "./devices.js";
 import { isGradleWrapperExecutable, loadGradleTasks } from "./gradle.js";
 import { preferencesFilePath } from "./paths.js";
 import { emptyPreferences, getProjectPreferences, loadPreferences, savePreferences } from "./preferences.js";
@@ -205,24 +207,14 @@ function checkNodeVersion(nodeVersion: string): DoctorCheck {
 }
 
 async function checkAdbAvailable(commandRunner: CommandRunner): Promise<DoctorCheck> {
-  try {
-    const result = await commandRunner("adb", ["version"]);
-    return {
-      id: "adb",
-      label: "ADB available",
-      status: result.exitCode === 0 ? "pass" : "fail",
-      message: result.exitCode === 0 ? "adb is available." : "adb was found but returned a failure.",
-      suggestion: result.exitCode === 0 ? undefined : "Check your Android SDK platform-tools installation."
-    };
-  } catch {
-    return {
-      id: "adb",
-      label: "ADB available",
-      status: "fail",
-      message: "adb was not found on PATH.",
-      suggestion: "Install Android SDK platform-tools and ensure adb is on PATH."
-    };
-  }
+  const available = await isAdbAvailable(commandRunner);
+  return {
+    id: "adb",
+    label: "ADB available",
+    status: available ? "pass" : "fail",
+    message: available ? "adb is available." : "adb was not found on PATH.",
+    suggestion: available ? undefined : "Install Android SDK platform-tools and ensure adb is on PATH."
+  };
 }
 
 function checkAndroidSdk(env: NodeJS.ProcessEnv): DoctorCheck {
@@ -238,18 +230,8 @@ function checkAndroidSdk(env: NodeJS.ProcessEnv): DoctorCheck {
 
 async function checkConnectedDevices(commandRunner: CommandRunner): Promise<DoctorCheck> {
   try {
-    const result = await commandRunner("adb", ["devices"]);
-    if (result.exitCode !== 0) {
-      return {
-        id: "connected-devices",
-        label: "Connected devices available",
-        status: "warn",
-        message: "Could not list devices.",
-        suggestion: "Run adb devices to inspect connected devices."
-      };
-    }
-
-    const onlineDeviceCount = countOnlineDevices(result.stdout || result.outputLines.join("\n"));
+    const devices = await listDevices(false, commandRunner);
+    const onlineDeviceCount = devices.filter((device) => device.state === "device").length;
     return {
       id: "connected-devices",
       label: "Connected devices available",
@@ -324,14 +306,6 @@ async function checkApplicationId(
     message: applicationId ? `Application ID configured for ${selectedVariant.name}.` : `No application ID configured for ${selectedVariant.name}.`,
     suggestion: applicationId ? undefined : "Add applicationIds to droiddeck.config.json for app-specific actions."
   };
-}
-
-function countOnlineDevices(adbDevicesOutput: string): number {
-  return adbDevicesOutput
-    .split(/\r?\n/)
-    .slice(1)
-    .map((line) => line.trim())
-    .filter((line) => /\sdevice(?:\s|$)/.test(line)).length;
 }
 
 function projectSkippedChecks(): DoctorCheck[] {
@@ -412,4 +386,3 @@ function orderDoctorChecks(checks: DoctorCheck[]): DoctorCheck[] {
 function toMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
-

@@ -95,3 +95,39 @@ function fakeCommandRunner(): (file: string, args?: readonly string[]) => Promis
   };
 }
 
+describe("doctor device integration", () => {
+  it("uses reusable device parsing for connected device checks", async () => {
+    const startDir = path.join(tempDir, "not-project-device-check");
+    const preferencesPath = path.join(tempDir, "device-check-preferences.json");
+    await fs.ensureDir(startDir);
+
+    const checks = await runDoctor({
+      startDir,
+      preferencesPath,
+      platform: "darwin",
+      nodeVersion: "20.0.0",
+      env: {},
+      commandRunner: async (file: string, args: readonly string[] = []) => {
+        const command = [file, ...args].join(" ");
+        if (file === "adb" && args[0] === "version") {
+          return { command, exitCode: 0, stdout: "Android Debug Bridge version", stderr: "", outputLines: [] };
+        }
+        if (file === "adb" && args[0] === "devices") {
+          return {
+            command,
+            exitCode: 0,
+            stdout: "List of devices attached\nemulator-5554 device model:Pixel_8\n",
+            stderr: "",
+            outputLines: []
+          };
+        }
+        return { command, exitCode: 0, stdout: "", stderr: "", outputLines: [] };
+      }
+    });
+
+    expect(checks.find((check) => check.id === "connected-devices")).toMatchObject({
+      status: "pass",
+      message: "1 online device(s)."
+    });
+  });
+});
