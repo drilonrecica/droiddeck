@@ -8,12 +8,10 @@ import { launchCommand } from "./commands/launch.js";
 import { logsCommand } from "./commands/logs.js";
 import { runCommand } from "./commands/run.js";
 import { screenshotCommand } from "./commands/screenshot.js";
+import { testCommand } from "./commands/test.js";
 import { uninstallCommand } from "./commands/uninstall.js";
 import { useCommand } from "./commands/use.js";
 import { variantsCommand } from "./commands/variants.js";
-import {
-  testCommand,
-} from "./commands/stubs.js";
 
 export async function runProgram(argv: string[]): Promise<void> {
   const program = new Command();
@@ -49,7 +47,14 @@ export async function runProgram(argv: string[]): Promise<void> {
     .option("--device <id>", "Use device for logs.")
     .description("Stream filtered logcat output.")
     .action(logsCommand);
-  program.command("test").argument("[variantOrAlias]").description("Run tests for a variant.").action(testCommand);
+  program
+    .command("test")
+    .argument("[variantOrAlias]")
+    .option("--all", "Reserved for all unit tests.")
+    .option("--connected", "Reserved for connected Android tests.")
+    .option("--open-report", "Open HTML report when available.")
+    .description("Run tests for a variant.")
+    .action(testCommand);
   program.command("clear").argument("[variantOrAlias]").option("--device <id>").description("Clear app data.").action(clearCommand);
   program.command("launch").argument("[variantOrAlias]").option("--device <id>").description("Launch app.").action(launchCommand);
   program.command("kill").argument("[variantOrAlias]").option("--device <id>").description("Force-stop app.").action(killCommand);
