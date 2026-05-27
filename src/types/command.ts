@@ -6,3 +6,10 @@ export type CommandResult = {
   outputLines: string[];
 };
 
+export type BinaryCommandResult = {
+  command: string;
+  exitCode: number;
+  stdout: Buffer;
+  stderr: string;
+  outputLines: string[];
+};

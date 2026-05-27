@@ -1,5 +1,5 @@
 import { execa, type Options } from "execa";
-import type { CommandResult } from "../types/command.js";
+import type { BinaryCommandResult, CommandResult } from "../types/command.js";
 
 export type RunCommandOptions = {
   cwd?: string;
@@ -41,7 +41,39 @@ export async function runCommand(file: string, args: readonly string[] = [], opt
   };
 }
 
+export async function runCommandBinary(file: string, args: readonly string[] = [], options: RunCommandOptions = {}): Promise<BinaryCommandResult> {
+  const command = [file, ...args].join(" ");
+  const result = await execa(file, [...args], {
+    cwd: options.cwd,
+    env: options.env,
+    input: options.input,
+    reject: options.reject ?? false,
+    encoding: "buffer"
+  });
+  const stderr = toBuffer(result.stderr).toString("utf8");
+
+  return {
+    command,
+    exitCode: result.exitCode ?? 0,
+    stdout: toBuffer(result.stdout),
+    stderr,
+    outputLines: splitLines(stderr)
+  };
+}
+
 function splitLines(value: string): string[] {
   return value.split(/\r?\n/).filter((line) => line.length > 0);
 }
 
+function toBuffer(value: unknown): Buffer {
+  if (Buffer.isBuffer(value)) {
+    return value;
+  }
+  if (value instanceof Uint8Array) {
+    return Buffer.from(value);
+  }
+  if (typeof value === "string") {
+    return Buffer.from(value);
+  }
+  return Buffer.alloc(0);
+}

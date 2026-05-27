@@ -20,3 +20,6 @@ export function preferencesFilePath(homeDir = os.homedir()): string {
   return path.join(homeDir, ".droiddeck", "preferences.json");
 }
 
+export function screenshotsDir(projectRoot: string): string {
+  return path.join(projectRoot, ".droiddeck", "screenshots");
+}
