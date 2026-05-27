@@ -1,3 +1,14 @@
+export type CommandStatus = "idle" | "running" | "success" | "failed" | "cancelled";
+
+export type CommandState = {
+  title: string;
+  status: CommandStatus;
+  outputLines: string[];
+  error?: string;
+  startedAt?: number;
+  endedAt?: number;
+};
+
 export type CommandResult = {
   command: string;
   exitCode: number;

@@ -1,6 +1,18 @@
 import { execa, type Options } from "execa";
 import type { BinaryCommandResult, CommandResult } from "../types/command.js";
 
+const DEFAULT_MAX_OUTPUT_LINES = 500;
+
+type TrackableSubprocess = {
+  pid?: number;
+  killed?: boolean;
+  kill: (signal?: NodeJS.Signals) => boolean;
+  then: Promise<unknown>["then"];
+};
+
+const trackedProcesses = new Map<TrackableSubprocess, Promise<unknown>>();
+let cleanupHandlersRegistered = false;
+
 export type RunCommandOptions = {
   cwd?: string;
   env?: NodeJS.ProcessEnv;
@@ -27,10 +39,10 @@ export async function runCommand(file: string, args: readonly string[] = [], opt
     all: true
   };
 
-  const subprocess = execa(file, [...args], execaOptions);
+  const subprocess = trackSubprocess(execa(file, [...args], execaOptions));
   subprocess.all?.on("data", (chunk: Buffer) => {
     for (const line of splitLines(chunk.toString())) {
-      pushBounded(outputLines, line, options.maxOutputLines);
+      pushBounded(outputLines, line, options.maxOutputLines ?? DEFAULT_MAX_OUTPUT_LINES);
       options.onLine?.(line);
     }
   });
@@ -51,16 +63,16 @@ export async function runCommand(file: string, args: readonly string[] = [], opt
 export function streamCommand(file: string, args: readonly string[] = [], options: RunCommandOptions = {}): StreamingCommand {
   const command = [file, ...args].join(" ");
   const outputLines: string[] = [];
-  const subprocess = execa(file, [...args], {
+  const subprocess = trackSubprocess(execa(file, [...args], {
     cwd: options.cwd,
     env: options.env,
     reject: options.reject ?? false,
     all: true
-  });
+  }));
 
   subprocess.all?.on("data", (chunk: Buffer) => {
     for (const line of splitLines(chunk.toString())) {
-      pushBounded(outputLines, line, options.maxOutputLines);
+      pushBounded(outputLines, line, options.maxOutputLines ?? DEFAULT_MAX_OUTPUT_LINES);
       options.onLine?.(line);
     }
   });
@@ -75,20 +87,20 @@ export function streamCommand(file: string, args: readonly string[] = [], option
       outputLines
     })),
     stop: () => {
-      subprocess.kill("SIGTERM");
+      stopSubprocess(subprocess);
     }
   };
 }
 
 export async function runCommandBinary(file: string, args: readonly string[] = [], options: RunCommandOptions = {}): Promise<BinaryCommandResult> {
   const command = [file, ...args].join(" ");
-  const result = await execa(file, [...args], {
+  const result = await trackSubprocess(execa(file, [...args], {
     cwd: options.cwd,
     env: options.env,
     input: options.input,
     reject: options.reject ?? false,
     encoding: "buffer"
-  });
+  }));
   const stderr = toBuffer(result.stderr).toString("utf8");
 
   return {
@@ -96,7 +108,66 @@ export async function runCommandBinary(file: string, args: readonly string[] = [
     exitCode: result.exitCode ?? 0,
     stdout: toBuffer(result.stdout),
     stderr,
-    outputLines: splitLines(stderr)
+    outputLines: splitLines(stderr).slice(-DEFAULT_MAX_OUTPUT_LINES)
+  };
+}
+
+export function trackedProcessCount(): number {
+  return trackedProcesses.size;
+}
+
+export function stopTrackedProcesses(signal: NodeJS.Signals = "SIGTERM"): number {
+  let stopped = 0;
+
+  for (const subprocess of trackedProcesses.keys()) {
+    if (stopSubprocess(subprocess, signal)) {
+      stopped += 1;
+    }
+  }
+
+  return stopped;
+}
+
+export async function waitForTrackedProcesses(timeoutMs = 1000): Promise<void> {
+  const pending = [...trackedProcesses.values()];
+  if (pending.length === 0) {
+    return;
+  }
+
+  await Promise.race([
+    Promise.allSettled(pending),
+    new Promise<void>((resolve) => {
+      setTimeout(resolve, timeoutMs).unref();
+    })
+  ]);
+}
+
+export function registerProcessCleanupHandlers(): () => void {
+  if (cleanupHandlersRegistered) {
+    return () => undefined;
+  }
+
+  cleanupHandlersRegistered = true;
+  const cleanup = (): void => {
+    stopTrackedProcesses();
+  };
+  const signalCleanup = (signal: NodeJS.Signals): void => {
+    stopTrackedProcesses(signal);
+    process.exitCode = signal === "SIGINT" ? 130 : 143;
+    setTimeout(() => process.exit(process.exitCode ?? 1), 100).unref();
+  };
+  const onSigint = (): void => signalCleanup("SIGINT");
+  const onSigterm = (): void => signalCleanup("SIGTERM");
+
+  process.once("SIGINT", onSigint);
+  process.once("SIGTERM", onSigterm);
+  process.once("exit", cleanup);
+
+  return () => {
+    cleanupHandlersRegistered = false;
+    process.off("SIGINT", onSigint);
+    process.off("SIGTERM", onSigterm);
+    process.off("exit", cleanup);
   };
 }
 
@@ -108,6 +179,27 @@ function pushBounded(lines: string[], line: string, maxLines = Number.POSITIVE_I
   lines.push(line);
   if (lines.length > maxLines) {
     lines.splice(0, lines.length - maxLines);
+  }
+}
+
+function trackSubprocess<T extends TrackableSubprocess>(subprocess: T): T {
+  const done = Promise.resolve(subprocess).finally(() => {
+    trackedProcesses.delete(subprocess);
+  });
+  trackedProcesses.set(subprocess, done);
+  done.catch(() => undefined);
+  return subprocess;
+}
+
+function stopSubprocess(subprocess: TrackableSubprocess, signal: NodeJS.Signals = "SIGTERM"): boolean {
+  if (subprocess.killed) {
+    return false;
+  }
+
+  try {
+    return subprocess.kill(signal);
+  } catch {
+    return false;
   }
 }
 

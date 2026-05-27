@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { runCommand } from "../../src/core/processRunner.js";
+import { runCommand, streamCommand, trackedProcessCount, waitForTrackedProcesses } from "../../src/core/processRunner.js";
 
 describe("process runner", () => {
   it("captures successful command output", async () => {
@@ -25,5 +25,23 @@ describe("process runner", () => {
 
     expect(lines).toEqual(["line-one", "line-two"]);
   });
-});
 
+  it("bounds retained output lines", async () => {
+    const result = await runCommand(process.execPath, ["-e", "console.log('one'); console.log('two'); console.log('three')"], {
+      maxOutputLines: 2
+    });
+
+    expect(result.outputLines).toEqual(["two", "three"]);
+  });
+
+  it("tracks and stops streaming child processes", async () => {
+    const stream = streamCommand(process.execPath, ["-e", "setInterval(() => console.log('tick'), 20)"]);
+    expect(trackedProcessCount()).toBeGreaterThan(0);
+
+    stream.stop();
+    await stream.done;
+    await waitForTrackedProcesses();
+
+    expect(trackedProcessCount()).toBe(0);
+  });
+});

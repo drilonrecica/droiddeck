@@ -7,6 +7,7 @@ import { listDevices } from "../core/devices.js";
 import { runDoctor } from "../core/doctor.js";
 import { runGradle } from "../core/gradle.js";
 import { updateProjectPreferences } from "../core/preferences.js";
+import { stopTrackedProcesses } from "../core/processRunner.js";
 import {
   loadProjectSession,
   resolveSessionApplicationId,
@@ -126,6 +127,7 @@ export function App(): JSX.Element {
       onClearVisibleLogs: () => logs.clear(),
       onQuit: () => {
         setLogsEnabled(false);
+        stopTrackedProcesses();
         exit();
       }
     },

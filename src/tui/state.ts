@@ -1,15 +1,10 @@
+import type { CommandState, CommandStatus } from "../types/command.js";
+
 export type DashboardView = "dashboard" | "variants" | "devices" | "doctor" | "help" | "confirm-uninstall" | "logs";
 
-export type TuiCommandStatus = "idle" | "running" | "success" | "failed";
+export type TuiCommandStatus = CommandStatus;
 
-export type TuiCommandState = {
-  title: string;
-  status: TuiCommandStatus;
-  outputLines: string[];
-  error?: string;
-  startedAt?: number;
-  endedAt?: number;
-};
+export type TuiCommandState = CommandState;
 
 export function idleCommandState(): TuiCommandState {
   return {

@@ -1,5 +1,6 @@
 import React from "react";
 import { render } from "ink";
+import { registerProcessCleanupHandlers, stopTrackedProcesses, waitForTrackedProcesses } from "../../core/processRunner.js";
 import { App } from "../../tui/App.js";
 
 export async function dashboardCommand(): Promise<void> {
@@ -9,6 +10,13 @@ export async function dashboardCommand(): Promise<void> {
     return;
   }
 
+  const unregisterCleanup = registerProcessCleanupHandlers();
   const instance = render(<App />);
-  await instance.waitUntilExit();
+  try {
+    await instance.waitUntilExit();
+  } finally {
+    stopTrackedProcesses();
+    await waitForTrackedProcesses();
+    unregisterCleanup();
+  }
 }
