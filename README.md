@@ -1,50 +1,168 @@
 # DroidDeck
 
-DroidDeck is a terminal dashboard and CLI command center for native Android development.
+DroidDeck is a macOS-first terminal dashboard and CLI command center for native Android development.
 
-The implementation source of truth is [docs/PLAN.md](docs/PLAN.md).
+It wraps common Android workflows around the project Gradle wrapper and ADB: discover variants, select a device, install and launch, stream filtered Logcat, run tests, capture screenshots, and run doctor checks.
 
-## Current Status
+`docs/PLAN.md` is the product and implementation source of truth. `docs/TASKS.md` is the phased implementation roadmap.
 
-DroidDeck is currently at the initial Node.js + TypeScript project skeleton stage. CLI commands are registered with clear placeholders; Android, Gradle, ADB, Logcat, and TUI behavior are intentionally not implemented yet.
+## MVP Status
 
-## Install And Dev
+DroidDeck currently implements the MVP CLI workflows and an Ink-based TUI dashboard. It remains a local developer tool: no analytics, telemetry, AI, Firebase integration, release automation, external data upload, Android Studio plugin, or external network behavior is included.
+
+## Requirements
+
+- macOS for MVP1 usage.
+- Node.js 20 or newer.
+- `pnpm`.
+- Android SDK platform-tools with `adb` on `PATH`.
+- A native Android project with a project-local `./gradlew`.
+- `settings.gradle` or `settings.gradle.kts` in the Android project root.
+
+## Development
 
 ```bash
 pnpm install
 pnpm dev
 pnpm build
+pnpm start
 pnpm test
 pnpm typecheck
 ```
 
-## Usage
+The built executable is `dist/index.js`, and the package bin is `droiddeck`.
+
+## TUI
+
+Run from an Android project root or subdirectory:
 
 ```bash
 droiddeck
+```
+
+Core hotkeys:
+
+```text
+r run selected variant
+R clean run selected variant
+v select variant
+d select device
+c clear app data
+l launch app
+k kill app
+u uninstall app, with confirmation
+t run selected variant unit tests
+s capture screenshot
+g focus/start logs
+D open doctor panel
+? open help
+o open latest test report
+C clear visible DroidDeck log panel only
+q quit
+```
+
+## CLI Commands
+
+```bash
 droiddeck doctor
 droiddeck variants
 droiddeck devices
-droiddeck use stagingDebug
-droiddeck device emulator-5554
-droiddeck run stagingDebug
-droiddeck logs stagingDebug
-droiddeck test stagingDebug
-droiddeck clear stagingDebug
-droiddeck launch stagingDebug
-droiddeck kill stagingDebug
-droiddeck uninstall stagingDebug
-droiddeck screenshot stagingDebug
+droiddeck use <variantOrAlias>
+droiddeck device <deviceId>
+droiddeck run [variantOrAlias] --clean --fresh --watch --device <deviceId>
+droiddeck logs [variantOrAlias] --errors --warnings --all --device <deviceId>
+droiddeck test [variantOrAlias] --open-report
+droiddeck clear [variantOrAlias] --device <deviceId>
+droiddeck launch [variantOrAlias] --device <deviceId>
+droiddeck kill [variantOrAlias] --device <deviceId>
+droiddeck uninstall [variantOrAlias] --device <deviceId> --yes
+droiddeck screenshot [variantOrAlias] --device <deviceId>
 ```
 
-The default command currently prints:
+Safety rules:
+
+- `run --fresh` clears app data only after a successful install and before launch.
+- `clear` is explicit and app-specific.
+- `uninstall` requires `--yes` or interactive confirmation.
+- Logcat is never globally cleared; `C` clears only DroidDeck's visible log panel.
+- DroidDeck uses `./gradlew` and does not fall back to system Gradle.
+
+## Configuration
+
+Optional repo config lives at:
 
 ```text
-DroidDeck TUI dashboard is not implemented yet.
+<project-root>/droiddeck.config.json
 ```
 
-Command stubs currently print `Not implemented yet: <command>`.
+Generic example:
 
-## MVP Boundaries
+```json
+{
+  "projectName": "Example Android",
+  "appModule": "app",
+  "variantAliases": {
+    "dev": "developmentDebug",
+    "prod": "productionRelease"
+  },
+  "applicationIds": {
+    "developmentDebug": "com.example.app.dev",
+    "productionRelease": "com.example.app"
+  },
+  "mainActivity": ".MainActivity",
+  "logcat": {
+    "defaultMode": "warnings",
+    "tags": ["Network", "Database"]
+  },
+  "actions": {
+    "launchMode": "monkey"
+  }
+}
+```
 
-DroidDeck must remain a general Android tool. Do not hardcode project-specific names, package names, flavors, or paths. MVP1 excludes AI, analytics, release automation, Firebase integration, Android Studio plugins, and external network calls.
+Important fields:
+
+- `appModule` defaults to `app`; `app` and `:app` are both accepted.
+- `variantAliases` lets commands like `droiddeck run dev` resolve to a variant.
+- `applicationIds` is the safest way to support launch, clear, kill, uninstall, and app-filtered logs.
+- `actions.launchMode` can be `monkey` or `activity`; `activity` requires `mainActivity`.
+- `logcat.defaultMode` can be `errors`, `warnings`, or `all`.
+
+If an application ID cannot be resolved, add:
+
+```json
+{
+  "applicationIds": {
+    "<variantName>": "your.package.name"
+  }
+}
+```
+
+## Files Written By DroidDeck
+
+User preferences are stored outside the Android project:
+
+```text
+~/.droiddeck/preferences.json
+```
+
+Screenshots are stored in the Android project:
+
+```text
+<project-root>/.droiddeck/screenshots/
+```
+
+Android projects should ignore project-local DroidDeck output:
+
+```gitignore
+.droiddeck/
+```
+
+## MVP Limitations
+
+- macOS-first for MVP1.
+- Single app module by default.
+- Single selected device workflow.
+- Variant discovery is based on Gradle task output.
+- Application ID inference is conservative; ambiguous cases require config.
+- No Android project source files are modified automatically.
