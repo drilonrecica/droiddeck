@@ -71,7 +71,7 @@ droiddeck use <variantOrAlias>
 droiddeck device <deviceId>
 droiddeck run [variantOrAlias] --clean --fresh --watch --device <deviceId>
 droiddeck logs [variantOrAlias] --errors --warnings --all --device <deviceId>
-droiddeck test [variantOrAlias] --open-report
+droiddeck test [variantOrAlias] --all --connected --open-report --device <deviceId>
 droiddeck clear [variantOrAlias] --device <deviceId>
 droiddeck launch [variantOrAlias] --device <deviceId>
 droiddeck kill [variantOrAlias] --device <deviceId>
@@ -84,6 +84,8 @@ Safety rules:
 - `run --fresh` clears app data only after a successful install and before launch.
 - `clear` is explicit and app-specific.
 - `uninstall` requires `--yes` or interactive confirmation.
+- `test --connected` requires an online selected or requested device.
+- `test --all --connected` is not supported in MVP1.
 - Logcat is never globally cleared; `C` clears only DroidDeck's visible log panel.
 - DroidDeck uses `./gradlew` and does not fall back to system Gradle.
 

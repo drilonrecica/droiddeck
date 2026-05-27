@@ -16,6 +16,12 @@ const debugVariant: AndroidVariant = {
   taskNamePart: "Debug",
   buildType: "debug"
 };
+const stagingDebugVariant: AndroidVariant = {
+  name: "stagingDebug",
+  taskNamePart: "StagingDebug",
+  flavorName: "staging",
+  buildType: "debug"
+};
 
 afterEach(async () => {
   await fs.remove(tempDir);
@@ -78,6 +84,28 @@ android {
 `);
 
     await expect(inferApplicationIdFromGradleFiles(projectRoot, "app", debugVariant)).resolves.toBe("com.example.app.debug");
+  });
+
+  it("infers unambiguous flavor and build type suffixes from named Gradle blocks", async () => {
+    const projectRoot = await createProjectBuildFile(`
+android {
+  defaultConfig {
+    applicationId = "com.example.app"
+  }
+  productFlavors {
+    named("staging") {
+      applicationIdSuffix = ".staging"
+    }
+  }
+  buildTypes {
+    getByName("debug") {
+      applicationIdSuffix = ".debug"
+    }
+  }
+}
+`);
+
+    await expect(inferApplicationIdFromGradleFiles(projectRoot, "app", stagingDebugVariant)).resolves.toBe("com.example.app.staging.debug");
   });
 
   it("does not infer when declarations are ambiguous", async () => {

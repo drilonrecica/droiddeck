@@ -117,7 +117,7 @@ function findNamedBlocks(contents: string, name: string): string[] {
   const escapedName = escapeRegExp(name);
   const patterns = [
     new RegExp(`(^|[\\s{])${escapedName}\\s*\\{`, "g"),
-    new RegExp(`\\b(?:create|getByName)\\(\\s*["']${escapedName}["']\\s*\\)\\s*\\{`, "g")
+    new RegExp(`\\b(?:create|getByName|maybeCreate|named)\\(\\s*["']${escapedName}["']\\s*\\)\\s*\\{`, "g")
   ];
   const blocks: string[] = [];
 
@@ -166,4 +166,3 @@ function distinct(values: string[]): string[] {
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
-

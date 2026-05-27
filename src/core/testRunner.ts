@@ -17,6 +17,27 @@ export async function runUnitTests(projectRoot: string, variant: AndroidVariant,
   return runGradle(projectRoot, [variant.unitTestTask], onLine);
 }
 
+export async function runAllUnitTests(projectRoot: string, variants: readonly AndroidVariant[], onLine?: (line: string) => void): Promise<CommandResult> {
+  const tasks = unitTestTasks(variants);
+  if (tasks.length === 0) {
+    throw new DroidDeckError("No unit test tasks were discovered.");
+  }
+
+  return runGradle(projectRoot, tasks, onLine);
+}
+
+export async function runConnectedTests(projectRoot: string, variant: AndroidVariant, onLine?: (line: string) => void): Promise<CommandResult> {
+  if (!variant.connectedTestTask) {
+    throw new DroidDeckError(`No connected Android test task found for variant "${variant.name}".`);
+  }
+
+  return runGradle(projectRoot, [variant.connectedTestTask], onLine);
+}
+
+export function unitTestTasks(variants: readonly AndroidVariant[]): string[] {
+  return variants.map((variant) => variant.unitTestTask).filter((task): task is string => Boolean(task));
+}
+
 export function testReportPath(projectRoot: string, appModule: string, variant: AndroidVariant): string {
   return path.join(projectRoot, normalizeModuleName(appModule), "build", "reports", "tests", `test${variant.taskNamePart}UnitTest`, "index.html");
 }
@@ -39,4 +60,3 @@ export async function openTestReportIfExists(
 export function testStatusMessage(result: Pick<CommandResult, "exitCode">): "TESTS PASSED" | "TESTS FAILED" {
   return result.exitCode === 0 ? "TESTS PASSED" : "TESTS FAILED";
 }
-

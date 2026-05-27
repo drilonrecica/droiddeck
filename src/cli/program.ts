@@ -49,9 +49,10 @@ export async function runProgram(argv: string[]): Promise<void> {
   program
     .command("test")
     .argument("[variantOrAlias]")
-    .option("--all", "Reserved for all unit tests.")
-    .option("--connected", "Reserved for connected Android tests.")
+    .option("--all", "Run all discovered unit test tasks.")
+    .option("--connected", "Run selected variant connected Android tests.")
     .option("--open-report", "Open HTML report when available.")
+    .option("--device <id>", "Use device for connected tests.")
     .description("Run tests for a variant.")
     .action(testCommand);
   program.command("clear").argument("[variantOrAlias]").option("--device <id>").description("Clear app data.").action(clearCommand);

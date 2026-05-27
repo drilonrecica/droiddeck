@@ -2,14 +2,23 @@ import os from "node:os";
 import path from "node:path";
 import fs from "fs-extra";
 import { afterEach, describe, expect, it } from "vitest";
-import { openTestReportIfExists, runUnitTests, testReportPath, testStatusMessage } from "../../src/core/testRunner.js";
+import {
+  openTestReportIfExists,
+  runAllUnitTests,
+  runConnectedTests,
+  runUnitTests,
+  testReportPath,
+  testStatusMessage,
+  unitTestTasks
+} from "../../src/core/testRunner.js";
 import type { AndroidVariant } from "../../src/types/variant.js";
 
 const tempDir = path.join(os.tmpdir(), `droiddeck-test-runner-${process.pid}`);
 const variant: AndroidVariant = {
   name: "stagingDebug",
   taskNamePart: "StagingDebug",
-  unitTestTask: ":app:testStagingDebugUnitTest"
+  unitTestTask: ":app:testStagingDebugUnitTest",
+  connectedTestTask: ":app:connectedStagingDebugAndroidTest"
 };
 
 afterEach(async () => {
@@ -36,6 +45,24 @@ describe("test runner", () => {
 
   it("fails clearly when a variant has no unit test task", async () => {
     await expect(runUnitTests(tempDir, { name: "release", taskNamePart: "Release" })).rejects.toThrow(/No unit test task/);
+  });
+
+  it("selects all discovered unit test tasks", () => {
+    expect(
+      unitTestTasks([
+        variant,
+        { name: "release", taskNamePart: "Release" },
+        { name: "debug", taskNamePart: "Debug", unitTestTask: ":app:testDebugUnitTest" }
+      ])
+    ).toEqual([":app:testStagingDebugUnitTest", ":app:testDebugUnitTest"]);
+  });
+
+  it("fails clearly when all unit tests have no tasks", async () => {
+    await expect(runAllUnitTests(tempDir, [{ name: "release", taskNamePart: "Release" }])).rejects.toThrow(/No unit test tasks/);
+  });
+
+  it("fails clearly when a variant has no connected test task", async () => {
+    await expect(runConnectedTests(tempDir, { name: "release", taskNamePart: "Release" })).rejects.toThrow(/No connected Android test task/);
   });
 
   it("opens a report only when it exists", async () => {
