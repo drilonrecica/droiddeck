@@ -1,9 +1,9 @@
 import { Command } from "commander";
+import { doctorCommand } from "./commands/doctor.js";
 import {
   clearCommand,
   deviceCommand,
   devicesCommand,
-  doctorCommand,
   killCommand,
   launchCommand,
   logsCommand,
