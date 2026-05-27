@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Box, Text, useApp, useInput } from "ink";
 import Spinner from "ink-spinner";
 import { clearAppData, killApp, launchApp, uninstallApp } from "../core/appActions.js";
+import { getAppStatus, type AppStatus } from "../core/appStatus.js";
 import { selectVariantBuildTask } from "../core/buildWorkflow.js";
 import { listDevices } from "../core/devices.js";
 import { runDoctor } from "../core/doctor.js";
@@ -45,6 +46,7 @@ type DashboardData = {
   selectedDevice?: AndroidDevice;
   deviceError?: string;
   doctorChecks: DoctorCheck[];
+  appStatus: AppStatus;
 };
 
 export function App(): JSX.Element {
@@ -198,6 +200,7 @@ export function App(): JSX.Element {
         doctorChecks={loaded.doctorChecks}
         selectedVariant={loaded.selectedVariant}
         selectedDevice={loaded.selectedDevice}
+        appStatus={loaded.appStatus}
       />
       {view === "doctor" ? <DoctorPanel checks={loaded.doctorChecks} /> : null}
       {view === "help" ? <HelpPanel /> : null}
@@ -281,6 +284,17 @@ export function App(): JSX.Element {
       const applicationId = await resolveSessionApplicationId(current.session, current.selectedVariant);
       await launchApp(current.session.config, current.selectedDevice.id, applicationId);
       setLogApplicationId(applicationId);
+      setLoadState((currentState) =>
+        currentState.status === "loaded"
+          ? {
+              status: "loaded",
+              data: {
+                ...currentState.data,
+                appStatus: "running"
+              }
+            }
+          : currentState
+      );
       onLine(`Launched ${applicationId} on ${current.selectedDevice.id}.`);
     });
   }
@@ -377,11 +391,13 @@ export function App(): JSX.Element {
     const current = requireData();
     const selectedVariant = resolveSessionVariant(current.session, variantName);
     await updateProjectPreferences(current.session.projectRoot, { lastVariant: selectedVariant.name });
+    const appStatus = await getDashboardAppStatus(current.session, current.selectedDevice, selectedVariant);
     setLoadState({
       status: "loaded",
       data: {
         ...current,
         selectedVariant,
+        appStatus,
         session: {
           ...current.session,
           preferences: {
@@ -402,11 +418,13 @@ export function App(): JSX.Element {
     }
 
     await updateProjectPreferences(current.session.projectRoot, { lastDeviceId: selectedDevice.id });
+    const appStatus = await getDashboardAppStatus(current.session, selectedDevice, current.selectedVariant);
     setLoadState({
       status: "loaded",
       data: {
         ...current,
         selectedDevice,
+        appStatus,
         deviceError: undefined,
         session: {
           ...current.session,
@@ -428,6 +446,7 @@ async function loadDashboardData(): Promise<DashboardData> {
   const deviceError = devicesResult.status === "rejected" ? toErrorMessage(devicesResult.reason) : undefined;
   const selectedDevice = selectInitialDevice(devices, session.preferences.lastDeviceId);
   const selectedVariant = resolveSessionVariant(session);
+  const appStatus = await getDashboardAppStatus(session, selectedDevice, selectedVariant);
 
   return {
     session,
@@ -435,7 +454,8 @@ async function loadDashboardData(): Promise<DashboardData> {
     devices,
     selectedDevice,
     deviceError,
-    doctorChecks: doctorChecks.status === "fulfilled" ? doctorChecks.value : []
+    doctorChecks: doctorChecks.status === "fulfilled" ? doctorChecks.value : [],
+    appStatus
   };
 }
 
@@ -449,6 +469,19 @@ function selectInitialDevice(devices: readonly AndroidDevice[], persistedDeviceI
   }
 
   return onlineDevices.length === 1 ? onlineDevices[0] : undefined;
+}
+
+async function getDashboardAppStatus(session: ProjectSession, selectedDevice: AndroidDevice | undefined, selectedVariant: AndroidVariant): Promise<AppStatus> {
+  if (!selectedDevice) {
+    return "unknown";
+  }
+
+  try {
+    const applicationId = await resolveSessionApplicationId(session, selectedVariant);
+    return await getAppStatus(selectedDevice.id, applicationId);
+  } catch {
+    return "unknown";
+  }
 }
 
 function toErrorMessage(error: unknown): string {

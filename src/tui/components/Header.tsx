@@ -9,9 +9,10 @@ export type HeaderProps = {
   doctorChecks: readonly DoctorCheck[];
   selectedVariant?: AndroidVariant;
   selectedDevice?: AndroidDevice;
+  appStatus?: "running" | "not running" | "unknown";
 };
 
-export function Header({ project, doctorChecks, selectedVariant, selectedDevice }: HeaderProps): JSX.Element {
+export function Header({ project, doctorChecks, selectedVariant, selectedDevice, appStatus = "unknown" }: HeaderProps): JSX.Element {
   const failed = doctorChecks.filter((check) => check.status === "fail").length;
   const warning = doctorChecks.filter((check) => check.status === "warn").length;
   const passed = doctorChecks.filter((check) => check.status === "pass").length;
@@ -24,7 +25,7 @@ export function Header({ project, doctorChecks, selectedVariant, selectedDevice 
         Project: {project.name} | Module: {project.appModule} | Doctor: {doctorSummary}
       </Text>
       <Text>
-        Variant: {selectedVariant?.name ?? "not selected"} | Device: {selectedDevice?.model ?? selectedDevice?.id ?? "not selected"} | App: unknown
+        Variant: {selectedVariant?.name ?? "not selected"} | Device: {selectedDevice?.model ?? selectedDevice?.id ?? "not selected"} | App: {appStatus}
       </Text>
     </Box>
   );
