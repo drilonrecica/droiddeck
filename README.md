@@ -2,23 +2,21 @@
 
 DroidDeck is a terminal dashboard and CLI command center for native Android development.
 
-It is macOS-first for MVP1 and wraps common Gradle and ADB workflows: discover variants, select a device, run/install/launch, view filtered logs, run tests, capture screenshots, and run doctor checks.
+The implementation source of truth is [docs/PLAN.md](docs/PLAN.md).
 
-## Requirements
+## Current Status
 
-- macOS
-- Node.js 20+
-- Android SDK / `adb`
-- Android project with a Gradle wrapper
+DroidDeck is currently at the initial Node.js + TypeScript project skeleton stage. CLI commands are registered with clear placeholders; Android, Gradle, ADB, Logcat, and TUI behavior are intentionally not implemented yet.
 
-## Install
+## Install And Dev
 
 ```bash
 pnpm install
+pnpm dev
 pnpm build
+pnpm test
+pnpm typecheck
 ```
-
-If `pnpm` is unavailable, `npm install` also works for local development.
 
 ## Usage
 
@@ -27,39 +25,26 @@ droiddeck
 droiddeck doctor
 droiddeck variants
 droiddeck devices
-droiddeck run staging
-droiddeck test staging
-droiddeck logs staging
+droiddeck use stagingDebug
+droiddeck device emulator-5554
+droiddeck run stagingDebug
+droiddeck logs stagingDebug
+droiddeck test stagingDebug
+droiddeck clear stagingDebug
+droiddeck launch stagingDebug
+droiddeck kill stagingDebug
+droiddeck uninstall stagingDebug
+droiddeck screenshot stagingDebug
 ```
 
-## Config
+The default command currently prints:
 
-Create `droiddeck.config.json` in an Android project root when defaults are not enough.
-
-```json
-{
-  "projectName": "Example Android App",
-  "appModule": "app",
-  "variantAliases": {
-    "staging": "stagingDebug"
-  },
-  "applicationIds": {
-    "stagingDebug": "com.example.app.staging"
-  },
-  "logcat": {
-    "defaultMode": "warnings",
-    "tags": ["Network", "Database"]
-  },
-  "actions": {
-    "launchMode": "monkey"
-  }
-}
+```text
+DroidDeck TUI dashboard is not implemented yet.
 ```
 
-DroidDeck is a general Android tool. Do not rely on project-specific names unless they are supplied by your project config.
+Command stubs currently print `Not implemented yet: <command>`.
 
-## Notes
+## MVP Boundaries
 
-Screenshots are written to `.droiddeck/screenshots/` inside the Android project. Add `.droiddeck/` to that project's `.gitignore` if screenshots should not be tracked.
-
-MVP1 intentionally excludes AI, analytics, Firebase integration, release automation, Android Studio plugins, and external network calls.
+DroidDeck must remain a general Android tool. Do not hardcode project-specific names, package names, flavors, or paths. MVP1 excludes AI, analytics, release automation, Firebase integration, Android Studio plugins, and external network calls.
