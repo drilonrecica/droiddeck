@@ -32,6 +32,40 @@ pnpm typecheck
 
 The built executable is `dist/index.js`, and the package bin is `droiddeck`.
 
+## Packaging For Other Machines
+
+Build and package a local npm tarball:
+
+```bash
+pnpm install
+pnpm test
+pnpm typecheck
+pnpm build
+pnpm pack
+```
+
+This creates a file like:
+
+```text
+droiddeck-0.1.0.tgz
+```
+
+Install it globally on another machine:
+
+```bash
+npm install -g ./droiddeck-0.1.0.tgz
+```
+
+Then run DroidDeck from any Android project:
+
+```bash
+cd /path/to/android/project
+droiddeck doctor
+droiddeck
+```
+
+Target machines need Node.js 20 or newer, Android SDK platform-tools, and Android projects with a complete project-local Gradle wrapper including `gradle/wrapper/gradle-wrapper.jar`.
+
 ## TUI
 
 Run from an Android project root or subdirectory:
