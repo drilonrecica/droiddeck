@@ -2,6 +2,16 @@
   "name": "droiddeck",
   "version": "0.1.0",
   "description": "A terminal dashboard and CLI command center for native Android development.",
+  "license": "MIT",
+  "author": "Drilon Recica",
+  "keywords": [
+    "android",
+    "adb",
+    "gradle",
+    "cli",
+    "tui",
+    "logcat"
+  ],
   "type": "module",
   "bin": {
     "droiddeck": "./dist/index.js"

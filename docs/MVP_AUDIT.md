@@ -88,7 +88,7 @@ Not executed in this environment:
 
 Checked with source search across `src`, `tests`, `README.md`, and package metadata:
 
-- No WDW-specific source/test defaults were found.
+- No project-specific source/test defaults were found.
 - No Firebase integration was added.
 - No analytics or telemetry behavior was added.
 - No AI behavior was added.

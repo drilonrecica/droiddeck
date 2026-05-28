@@ -1,40 +1,34 @@
 # DroidDeck
 
-DroidDeck is a macOS-first terminal dashboard and CLI command center for native Android development.
+DroidDeck is a terminal dashboard and CLI command center for native Android projects.
 
-It wraps common Android workflows around the project Gradle wrapper and ADB: discover variants, select a device, install and launch, stream filtered Logcat, run tests, capture screenshots, and run doctor checks.
+It gives Android developers a fast local workflow for variant-heavy apps: discover Gradle variants, select a device, install and launch, stream filtered Logcat, run tests, capture screenshots, and run project health checks.
 
-`docs/PLAN.md` is the product and implementation source of truth. `docs/TASKS.md` is the phased implementation roadmap.
+DroidDeck is intentionally local-only. It does not include telemetry, analytics, AI features, Firebase integration, release automation, external data upload, or Android Studio plugin behavior.
 
-## MVP Status
+## Status
 
-DroidDeck currently implements the MVP CLI workflows and an Ink-based TUI dashboard. It remains a local developer tool: no analytics, telemetry, AI, Firebase integration, release automation, external data upload, Android Studio plugin, or external network behavior is included.
+DroidDeck is currently an MVP. The CLI workflows and Ink-based TUI dashboard are implemented, but public testing is still early.
+
+Recommended before broad use:
+
+- Test it on a complete Android project with flavors.
+- Test it with at least one emulator or physical device.
+- Keep project-specific package IDs in `droiddeck.config.json` when inference is ambiguous.
 
 ## Requirements
 
-- macOS for MVP1 usage.
 - Node.js 20 or newer.
-- `pnpm`.
 - Android SDK platform-tools with `adb` on `PATH`.
 - A native Android project with a project-local `./gradlew`.
+- A complete Gradle wrapper, including `gradle/wrapper/gradle-wrapper.jar`.
 - `settings.gradle` or `settings.gradle.kts` in the Android project root.
 
-## Development
+MVP1 is macOS-first. Other platforms may work for some commands, but they are not the supported target yet.
 
-```bash
-pnpm install
-pnpm dev
-pnpm build
-pnpm start
-pnpm test
-pnpm typecheck
-```
+## Install From A Local Package
 
-The built executable is `dist/index.js`, and the package bin is `droiddeck`.
-
-## Packaging For Other Machines
-
-Build and package a local npm tarball:
+Build a local npm tarball:
 
 ```bash
 pnpm install
@@ -44,7 +38,7 @@ pnpm build
 pnpm pack
 ```
 
-This creates a file like:
+This creates:
 
 ```text
 droiddeck-0.1.0.tgz
@@ -56,7 +50,7 @@ Install it globally on another machine:
 npm install -g ./droiddeck-0.1.0.tgz
 ```
 
-Then run DroidDeck from any Android project:
+Then run from an Android project:
 
 ```bash
 cd /path/to/android/project
@@ -64,7 +58,22 @@ droiddeck doctor
 droiddeck
 ```
 
-Target machines need Node.js 20 or newer, Android SDK platform-tools, and Android projects with a complete project-local Gradle wrapper including `gradle/wrapper/gradle-wrapper.jar`.
+## Development
+
+```bash
+pnpm install
+pnpm dev
+pnpm test
+pnpm typecheck
+pnpm build
+pnpm start
+```
+
+Useful packaging check:
+
+```bash
+npm pack --dry-run
+```
 
 ## TUI
 
@@ -74,7 +83,7 @@ Run from an Android project root or subdirectory:
 droiddeck
 ```
 
-Core hotkeys:
+Hotkeys:
 
 ```text
 r run selected variant
@@ -113,16 +122,6 @@ droiddeck uninstall [variantOrAlias] --device <deviceId> --yes
 droiddeck screenshot [variantOrAlias] --device <deviceId>
 ```
 
-Safety rules:
-
-- `run --fresh` clears app data only after a successful install and before launch.
-- `clear` is explicit and app-specific.
-- `uninstall` requires `--yes` or interactive confirmation.
-- `test --connected` requires an online selected or requested device.
-- `test --all --connected` is not supported in MVP1.
-- Logcat is never globally cleared; `C` clears only DroidDeck's visible log panel.
-- DroidDeck uses `./gradlew` and does not fall back to system Gradle.
-
 ## Configuration
 
 Optional repo config lives at:
@@ -131,7 +130,7 @@ Optional repo config lives at:
 <project-root>/droiddeck.config.json
 ```
 
-Generic example:
+Example:
 
 ```json
 {
@@ -164,7 +163,7 @@ Important fields:
 - `actions.launchMode` can be `monkey` or `activity`; `activity` requires `mainActivity`.
 - `logcat.defaultMode` can be `errors`, `warnings`, or `all`.
 
-If an application ID cannot be resolved, add:
+If DroidDeck cannot determine an application ID, add:
 
 ```json
 {
@@ -174,31 +173,46 @@ If an application ID cannot be resolved, add:
 }
 ```
 
+## Safety
+
+- DroidDeck uses the project `./gradlew`; it does not silently fall back to system Gradle.
+- `run --fresh` clears app data only after a successful install and before launch.
+- `clear` is explicit and app-specific.
+- `uninstall` requires `--yes` or interactive confirmation.
+- `test --connected` requires an online selected or requested device.
+- `test --all --connected` is not supported in MVP1.
+- Logcat is never globally cleared; `C` clears only DroidDeck's visible log panel.
+- DroidDeck does not modify Android project source files automatically.
+
 ## Files Written By DroidDeck
 
-User preferences are stored outside the Android project:
+User preferences:
 
 ```text
 ~/.droiddeck/preferences.json
 ```
 
-Screenshots are stored in the Android project:
+Project-local screenshots:
 
 ```text
 <project-root>/.droiddeck/screenshots/
 ```
 
-Android projects should ignore project-local DroidDeck output:
+Android projects should ignore local DroidDeck output:
 
 ```gitignore
 .droiddeck/
 ```
 
-## MVP Limitations
+## Limitations
 
-- macOS-first for MVP1.
+- MVP1 is macOS-first.
 - Single app module by default.
 - Single selected device workflow.
 - Variant discovery is based on Gradle task output.
 - Application ID inference is conservative; ambiguous cases require config.
-- No Android project source files are modified automatically.
+- No release automation, upload flow, profiler dashboard, Android Studio plugin, or desktop GUI.
+
+## License
+
+MIT. See [LICENSE](LICENSE).

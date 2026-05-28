@@ -804,7 +804,7 @@ This roadmap describes the full MVP from zero. It intentionally ignores any part
 - **Manual verification:**
   - Read README as a new user.
   - Run every documented command with `--help` or safe no-op context where possible.
-  - Confirm no WDW-specific values are present.
+  - Confirm no project-specific values are present.
 - **Acceptance criteria:**
   - README explains install, config, usage, requirements, and limitations.
   - Docs match implemented CLI behavior.
@@ -909,7 +909,7 @@ This roadmap describes the full MVP from zero. It intentionally ignores any part
   10. Verify run, clean run, fresh run, launch, clear, kill, uninstall confirmation, screenshot, tests, report open, and logs.
   11. Verify quitting while Gradle and Logcat children are running.
   12. Check that no external network calls, analytics, AI, Firebase, release automation, Android Studio plugin, or GUI behavior exists.
-  13. Check that no WDW-specific values or assumptions exist in source, tests, or docs except as quoted examples from the plan if unavoidable.
+  13. Check that no project-specific values or assumptions exist in source, tests, or docs.
   14. Produce an MVP audit checklist mapping implementation to `docs/PLAN.md` acceptance criteria.
   15. Document any deferred item with reason and risk.
 - **Files likely added or modified:**

@@ -251,7 +251,7 @@ The exact visual implementation can vary, but it should preserve this informatio
 
 ```text
 ┌ DroidDeck ─────────────────────────────────────────────────────────────┐
-│ Project: Wohin Du Willst      Module: app      Doctor: ✓ 9/9          │
+│ Project: Example Android      Module: app      Doctor: ✓ 9/9          │
 │ Variant: stagingDebug         Device: Pixel 8  App: running           │
 └───────────────────────────────────────────────────────────────────────┘
 
@@ -392,7 +392,7 @@ Example:
 ```json
 {
   "projects": {
-    "/Users/drilon/projects/wdw-android": {
+    "/Users/developer/projects/example-android": {
       "lastVariant": "stagingDebug",
       "lastDeviceId": "emulator-5554",
       "lastLogMode": "warnings"
@@ -409,7 +409,7 @@ Supported MVP1 config:
 
 ```json
 {
-  "projectName": "Wohin Du Willst",
+  "projectName": "Example Android",
   "appModule": "app",
   "variantAliases": {
     "dev": "developmentDebug",
@@ -425,7 +425,7 @@ Supported MVP1 config:
   "mainActivity": ".MainActivity",
   "logcat": {
     "defaultMode": "warnings",
-    "tags": ["WDW", "Network", "Room", "Koin"]
+    "tags": ["App", "Network", "Database", "DI"]
   },
   "actions": {
     "launchMode": "monkey"
@@ -2086,9 +2086,9 @@ Potential post-MVP features:
 
 When implementing, prefer correctness and reliability over visual polish.
 
-Do not hardcode WDW-specific names, package names, flavors, or assumptions.
+Do not hardcode project-specific names, package names, flavors, or assumptions.
 
-The first real project may be WDW, but DroidDeck must remain generic.
+DroidDeck must remain generic across Android projects.
 
 Use strict TypeScript types.
 
