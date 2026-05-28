@@ -108,6 +108,65 @@ android {
     await expect(inferApplicationIdFromGradleFiles(projectRoot, "app", stagingDebugVariant)).resolves.toBe("com.example.app.staging.debug");
   });
 
+  it("infers sample-style flavor applicationId overrides with build type suffixes", async () => {
+    const projectRoot = await createProjectBuildFile(`
+android {
+  defaultConfig {
+    applicationId "com.example.base"
+  }
+  productFlavors {
+    VanillaFlavor {
+      applicationId "com.example.vanilla"
+    }
+    ChocolateFlavor {
+      applicationId "com.example.chocolate"
+    }
+  }
+  buildTypes {
+    debug {
+      applicationIdSuffix ".debug"
+    }
+  }
+}
+`);
+
+    await expect(
+      inferApplicationIdFromGradleFiles(projectRoot, "app", {
+        name: "vanillaFlavorDebug",
+        taskNamePart: "VanillaFlavorDebug",
+        flavorName: "vanillaFlavor",
+        buildType: "debug"
+      })
+    ).resolves.toBe("com.example.vanilla.debug");
+  });
+
+  it("infers custom build types from declared Gradle blocks when variant metadata is incomplete", async () => {
+    const projectRoot = await createProjectBuildFile(`
+android {
+  defaultConfig {
+    applicationId "com.example.base"
+  }
+  productFlavors {
+    ChocolateFlavor {
+      applicationId "com.example.chocolate"
+    }
+  }
+  buildTypes {
+    qa {
+      applicationIdSuffix ".qa"
+    }
+  }
+}
+`);
+
+    await expect(
+      inferApplicationIdFromGradleFiles(projectRoot, "app", {
+        name: "chocolateFlavorQa",
+        taskNamePart: "ChocolateFlavorQa"
+      })
+    ).resolves.toBe("com.example.chocolate.qa");
+  });
+
   it("does not infer when declarations are ambiguous", async () => {
     const projectRoot = await createProjectBuildFile(`
 android {

@@ -64,6 +64,7 @@ describe("doctor", () => {
     await fs.ensureDir(projectRoot);
     await fs.outputFile(path.join(projectRoot, "settings.gradle"), "");
     await fs.outputFile(path.join(projectRoot, "gradlew"), "");
+    await fs.outputFile(path.join(projectRoot, "gradle", "wrapper", "gradle-wrapper.jar"), "");
     await fs.outputJson(path.join(projectRoot, "droiddeck.config.json"), { actions: { launchMode: "activity" } });
 
     const checks = await runDoctor({
@@ -78,6 +79,32 @@ describe("doctor", () => {
     expect(checks.find((check) => check.id === "config")).toMatchObject({
       status: "fail",
       suggestion: "Fix droiddeck.config.json or remove it to use defaults."
+    });
+  });
+
+  it("reports incomplete Gradle wrappers before loading tasks", async () => {
+    const projectRoot = path.join(tempDir, "missing-wrapper-jar-project");
+    const preferencesPath = path.join(tempDir, "missing-wrapper-jar-preferences.json");
+    await fs.ensureDir(projectRoot);
+    await fs.outputFile(path.join(projectRoot, "settings.gradle"), "");
+    await fs.outputFile(path.join(projectRoot, "gradlew"), "");
+
+    const checks = await runDoctor({
+      startDir: projectRoot,
+      preferencesPath,
+      platform: "darwin",
+      nodeVersion: "20.0.0",
+      env: {},
+      commandRunner: fakeCommandRunner()
+    });
+
+    expect(checks.find((check) => check.id === "gradle-wrapper-jar")).toMatchObject({
+      status: "fail",
+      suggestion: "Restore gradle-wrapper.jar or regenerate the wrapper in the Android project."
+    });
+    expect(checks.find((check) => check.id === "gradle-tasks")).toMatchObject({
+      status: "fail",
+      message: "Skipped because the Gradle wrapper is unavailable, incomplete, or not executable."
     });
   });
 });

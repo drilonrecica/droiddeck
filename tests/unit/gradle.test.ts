@@ -17,11 +17,18 @@ describe("gradle", () => {
     await expect(requireGradleWrapper(tempDir)).rejects.toThrow(/Gradle wrapper not found/);
   });
 
+  it("fails when the Gradle wrapper JAR is missing", async () => {
+    const gradlewPath = path.join(tempDir, "gradlew");
+    await fs.outputFile(gradlewPath, "");
+
+    await expect(requireGradleWrapper(tempDir)).rejects.toThrow(/Gradle wrapper JAR not found/);
+  });
+
   it("returns the project Gradle wrapper path", async () => {
     const gradlewPath = path.join(tempDir, "gradlew");
     await fs.outputFile(gradlewPath, "");
+    await fs.outputFile(path.join(tempDir, "gradle", "wrapper", "gradle-wrapper.jar"), "");
 
     await expect(requireGradleWrapper(tempDir)).resolves.toBe(gradlewPath);
   });
 });
-

@@ -60,14 +60,20 @@ export async function inferApplicationIdFromGradleFiles(
   }
 
   const contents = stripComments(await fs.readFile(gradleFile, "utf8"));
-  const baseApplicationId = extractSingleLiteral(contents, /\bapplicationId\s*(?:=)?\s*["']([^"']+)["']/g);
+  const inferredParts = inferVariantParts(contents, variant);
+  const flavorName = variant.flavorName ?? inferredParts.flavorName;
+  const buildType = variant.buildType ?? inferredParts.buildType;
+  const flavorApplicationId = flavorName ? extractApplicationId(contents, flavorName) : undefined;
+  const defaultApplicationId = extractApplicationId(contents, "defaultConfig");
+  const baseApplicationId = flavorApplicationId ?? defaultApplicationId;
+
   if (!baseApplicationId) {
     return undefined;
   }
 
   const suffixes = [
-    variant.flavorName ? extractApplicationIdSuffix(contents, variant.flavorName) : undefined,
-    variant.buildType ? extractApplicationIdSuffix(contents, variant.buildType) : undefined
+    flavorName ? extractApplicationIdSuffix(contents, flavorName) : undefined,
+    buildType ? extractApplicationIdSuffix(contents, buildType) : undefined
   ].filter((suffix): suffix is string => Boolean(suffix));
 
   return `${baseApplicationId}${suffixes.join("")}`;
@@ -93,6 +99,21 @@ async function findModuleGradleFile(projectRoot: string, appModule: string): Pro
   return undefined;
 }
 
+function extractApplicationId(contents: string, blockName: string): string | undefined {
+  const blocks = findNamedBlocks(contents, blockName);
+  if (blocks.length === 0) {
+    return undefined;
+  }
+
+  const applicationIds = distinct(
+    blocks
+      .map((block) => extractSingleLiteral(block, /\bapplicationId\s*(?:=)?\s*["']([^"']+)["']/g))
+      .filter((applicationId): applicationId is string => Boolean(applicationId))
+  );
+
+  return applicationIds.length === 1 ? applicationIds[0] : undefined;
+}
+
 function extractApplicationIdSuffix(contents: string, blockName: string): string | undefined {
   const blocks = findNamedBlocks(contents, blockName);
   if (blocks.length === 0) {
@@ -108,16 +129,64 @@ function extractApplicationIdSuffix(contents: string, blockName: string): string
   return suffixes.length === 1 ? suffixes[0] : undefined;
 }
 
+function inferVariantParts(contents: string, variant: AndroidVariant): Pick<AndroidVariant, "buildType" | "flavorName"> {
+  const buildTypes = declaredBlockNames(contents, "buildTypes");
+  const flavors = declaredBlockNames(contents, "productFlavors");
+  const lowerVariantName = variant.name.toLowerCase();
+
+  for (const buildType of buildTypes.sort((left, right) => right.length - left.length)) {
+    const lowerBuildType = buildType.toLowerCase();
+    if (!lowerVariantName.endsWith(lowerBuildType)) {
+      continue;
+    }
+
+    const flavorPart = variant.name.slice(0, variant.name.length - buildType.length);
+    if (!flavorPart) {
+      return { buildType };
+    }
+
+    const flavorName = flavors.find((flavor) => flavor.toLowerCase() === flavorPart.toLowerCase());
+    if (flavorName) {
+      return { buildType, flavorName };
+    }
+  }
+
+  return {};
+}
+
+function declaredBlockNames(contents: string, containerName: string): string[] {
+  const containerBlocks = findNamedBlocks(contents, containerName);
+  const names = new Set<string>();
+
+  for (const block of containerBlocks) {
+    for (const match of block.matchAll(/(?:^|\n)\s*([A-Za-z][A-Za-z0-9_]*)\s*\{/g)) {
+      const name = match[1];
+      if (name) {
+        names.add(name);
+      }
+    }
+
+    for (const match of block.matchAll(/\b(?:create|getByName|maybeCreate|named)\(\s*["']([^"']+)["']\s*\)\s*\{/g)) {
+      const name = match[1];
+      if (name) {
+        names.add(name);
+      }
+    }
+  }
+
+  return [...names];
+}
+
 function extractSingleLiteral(contents: string, pattern: RegExp): string | undefined {
   const values = distinct([...contents.matchAll(pattern)].map((match) => match[1]).filter((value): value is string => Boolean(value)));
   return values.length === 1 ? values[0] : undefined;
 }
 
 function findNamedBlocks(contents: string, name: string): string[] {
-  const escapedName = escapeRegExp(name);
+  const nameAlternatives = distinct([name, upperFirst(name), lowerFirst(name)]).map(escapeRegExp).join("|");
   const patterns = [
-    new RegExp(`(^|[\\s{])${escapedName}\\s*\\{`, "g"),
-    new RegExp(`\\b(?:create|getByName|maybeCreate|named)\\(\\s*["']${escapedName}["']\\s*\\)\\s*\\{`, "g")
+    new RegExp(`(^|[\\s{])(?:${nameAlternatives})\\s*\\{`, "g"),
+    new RegExp(`\\b(?:create|getByName|maybeCreate|named)\\(\\s*["'](?:${nameAlternatives})["']\\s*\\)\\s*\\{`, "g")
   ];
   const blocks: string[] = [];
 
@@ -165,4 +234,12 @@ function distinct(values: string[]): string[] {
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function upperFirst(value: string): string {
+  return value ? `${value[0]?.toUpperCase()}${value.slice(1)}` : value;
+}
+
+function lowerFirst(value: string): string {
+  return value ? `${value[0]?.toLowerCase()}${value.slice(1)}` : value;
 }

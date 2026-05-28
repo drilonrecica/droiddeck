@@ -6,7 +6,7 @@ import type { AndroidVariant } from "../types/variant.js";
 import { isAdbAvailable } from "./adb.js";
 import { loadConfig } from "./config.js";
 import { listDevices } from "./devices.js";
-import { isGradleWrapperExecutable, loadGradleTasks } from "./gradle.js";
+import { hasGradleWrapperJar, isGradleWrapperExecutable, loadGradleTasks } from "./gradle.js";
 import { preferencesFilePath } from "./paths.js";
 import { emptyPreferences, getProjectPreferences, loadPreferences, savePreferences } from "./preferences.js";
 import { findProjectRoot, getProjectInfo } from "./projectDetector.js";
@@ -79,6 +79,7 @@ export async function runDoctor(options: DoctorOptions = {}): Promise<DoctorChec
     });
 
     let wrapperExecutable = false;
+    let wrapperJarExists = false;
     if (wrapperExists) {
       wrapperExecutable = await isGradleWrapperExecutable(projectRoot);
       checks.push({
@@ -92,6 +93,24 @@ export async function runDoctor(options: DoctorOptions = {}): Promise<DoctorChec
       checks.push({
         id: "gradle-wrapper-executable",
         label: "Gradle wrapper executable",
+        status: "fail",
+        message: "Skipped because ./gradlew was not found."
+      });
+    }
+
+    if (wrapperExists) {
+      wrapperJarExists = await hasGradleWrapperJar(projectRoot);
+      checks.push({
+        id: "gradle-wrapper-jar",
+        label: "Gradle wrapper JAR exists",
+        status: wrapperJarExists ? "pass" : "fail",
+        message: wrapperJarExists ? "gradle/wrapper/gradle-wrapper.jar exists." : "gradle/wrapper/gradle-wrapper.jar was not found.",
+        suggestion: wrapperJarExists ? undefined : "Restore gradle-wrapper.jar or regenerate the wrapper in the Android project."
+      });
+    } else {
+      checks.push({
+        id: "gradle-wrapper-jar",
+        label: "Gradle wrapper JAR exists",
         status: "fail",
         message: "Skipped because ./gradlew was not found."
       });
@@ -114,7 +133,7 @@ export async function runDoctor(options: DoctorOptions = {}): Promise<DoctorChec
       suggestion: moduleExists ? undefined : "Set appModule in droiddeck.config.json if your Android app module has a different name."
     });
 
-    if (wrapperExists && wrapperExecutable) {
+    if (wrapperExists && wrapperExecutable && wrapperJarExists) {
       try {
         const tasksOutput = await loadGradleTasks(projectRoot, project.appModule);
         variants = parseGradleTasks(tasksOutput, project.appModule);
@@ -150,7 +169,7 @@ export async function runDoctor(options: DoctorOptions = {}): Promise<DoctorChec
         id: "gradle-tasks",
         label: "Gradle tasks can be loaded",
         status: "fail",
-        message: "Skipped because the Gradle wrapper is unavailable or not executable."
+        message: "Skipped because the Gradle wrapper is unavailable, incomplete, or not executable."
       });
       checks.push({
         id: "variants",
@@ -329,6 +348,12 @@ function projectSkippedChecks(): DoctorCheck[] {
       message: "Skipped because no project root was found."
     },
     {
+      id: "gradle-wrapper-jar",
+      label: "Gradle wrapper JAR exists",
+      status: "fail",
+      message: "Skipped because no project root was found."
+    },
+    {
       id: "settings-file",
       label: "Android project settings file exists",
       status: "fail",
@@ -368,6 +393,7 @@ function orderDoctorChecks(checks: DoctorCheck[]): DoctorCheck[] {
     "project-root",
     "gradle-wrapper",
     "gradle-wrapper-executable",
+    "gradle-wrapper-jar",
     "settings-file",
     "app-module",
     "gradle-tasks",
