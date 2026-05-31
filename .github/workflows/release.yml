@@ -114,7 +114,7 @@ jobs:
             end
 
             test do
-              assert_match "Usage:", shell_output("\#{bin}/droiddeck --help")
+              assert_match "Usage:", shell_output("#{bin}/droiddeck --help")
             end
           end
           RUBY
