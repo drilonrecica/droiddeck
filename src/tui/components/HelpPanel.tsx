@@ -1,13 +1,13 @@
-import { Box, Text } from "ink";
+import { Line } from "./Line.js";
 
-export function HelpPanel(): JSX.Element {
+export function HelpPanel() {
   return (
-    <Box flexDirection="column" borderStyle="round" paddingX={1}>
-      <Text bold>Help</Text>
-      <Text>DroidDeck is keyboard-first. Use v/d to select variant and device, then r to run.</Text>
-      <Text>Destructive actions are explicit: c clears app data and u asks before uninstalling.</Text>
-      <Text>C clears only the visible DroidDeck log panel. It does not clear device Logcat.</Text>
-      <Text>Press q to quit.</Text>
-    </Box>
+    <box title="Help" flexDirection="column" border borderStyle="rounded" paddingX={1} height={7}>
+      <Line>DroidDeck is keyboard-first. Use Tab/Shift+Tab to move focus and Enter to activate.</Line>
+      <Line>Use arrows or j/k inside focused panels. v/d still open full variant and device pickers.</Line>
+      <Line>Destructive actions are explicit: c clears app data and u asks before uninstalling.</Line>
+      <Line>C clears only the visible DroidDeck log panel. It does not clear device Logcat.</Line>
+      <Line>Press q to quit.</Line>
+    </box>
   );
 }

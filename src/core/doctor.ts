@@ -38,6 +38,7 @@ export async function runDoctor(options: DoctorOptions = {}): Promise<DoctorChec
 
   checks.push(checkMacos(platform));
   checks.push(checkNodeVersion(nodeVersion));
+  checks.push(await checkBunAvailable(commandRunner));
 
   checks.push({
     id: "project-root",
@@ -225,6 +226,36 @@ function checkNodeVersion(nodeVersion: string): DoctorCheck {
   };
 }
 
+async function checkBunAvailable(commandRunner: CommandRunner): Promise<DoctorCheck> {
+  try {
+    const result = await commandRunner("bun", ["--version"]);
+    const version = result.stdout.trim() || result.outputLines[0] || "";
+    const supported = result.exitCode === 0 && isSupportedBunVersion(version);
+    return {
+      id: "bun-version",
+      label: "Bun runtime available",
+      status: supported ? "pass" : "fail",
+      message: version ? `Bun ${version}` : "Bun was not found on PATH.",
+      suggestion: supported ? undefined : "Install Bun 1.2 or newer and ensure bun is on PATH."
+    };
+  } catch {
+    return {
+      id: "bun-version",
+      label: "Bun runtime available",
+      status: "fail",
+      message: "Bun was not found on PATH.",
+      suggestion: "Install Bun 1.2 or newer and ensure bun is on PATH."
+    };
+  }
+}
+
+function isSupportedBunVersion(version: string): boolean {
+  const [majorRaw, minorRaw] = version.split(".");
+  const major = Number(majorRaw);
+  const minor = Number(minorRaw);
+  return major > 1 || (major === 1 && minor >= 2);
+}
+
 async function checkAdbAvailable(commandRunner: CommandRunner): Promise<DoctorCheck> {
   const available = await isAdbAvailable(commandRunner);
   return {
@@ -390,6 +421,7 @@ function orderDoctorChecks(checks: DoctorCheck[]): DoctorCheck[] {
   const order = [
     "macos",
     "node-version",
+    "bun-version",
     "project-root",
     "gradle-wrapper",
     "gradle-wrapper-executable",

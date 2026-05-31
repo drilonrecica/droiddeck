@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 import { runProgram } from "./cli/program.js";
 
 runProgram(process.argv).catch((error: unknown) => {

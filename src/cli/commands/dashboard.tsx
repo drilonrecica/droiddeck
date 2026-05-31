@@ -1,5 +1,5 @@
-import React from "react";
-import { render } from "ink";
+import { CliRenderEvents, createCliRenderer } from "@opentui/core";
+import { createRoot } from "@opentui/react";
 import { registerProcessCleanupHandlers, stopTrackedProcesses, waitForTrackedProcesses } from "../../core/processRunner.js";
 import { App } from "../../tui/App.js";
 
@@ -11,10 +11,24 @@ export async function dashboardCommand(): Promise<void> {
   }
 
   const unregisterCleanup = registerProcessCleanupHandlers();
-  const instance = render(<App />);
+  const renderer = await createCliRenderer({
+    screenMode: "alternate-screen",
+    exitOnCtrlC: true,
+    consoleMode: "disabled"
+  });
+  const root = createRoot(renderer);
+  const waitForDestroy = new Promise<void>((resolve) => {
+    renderer.once(CliRenderEvents.DESTROY, () => resolve());
+  });
+  root.render(<App />);
+
   try {
-    await instance.waitUntilExit();
+    await waitForDestroy;
   } finally {
+    root.unmount();
+    if (!renderer.isDestroyed) {
+      renderer.destroy();
+    }
     stopTrackedProcesses();
     await waitForTrackedProcesses();
     unregisterCleanup();

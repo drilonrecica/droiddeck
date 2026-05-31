@@ -25,7 +25,7 @@ export function useLogcat(options: UseLogcatOptions): UseLogcatResult {
   const [warning, setWarning] = useState<string | undefined>();
   const [error, setError] = useState<string | undefined>();
   const tagKey = useMemo(() => options.tags.join("\0"), [options.tags]);
-  const streamStopRef = useRef<(() => void) | undefined>();
+  const streamStopRef = useRef<(() => void) | undefined>(undefined);
 
   useEffect(() => {
     if (!options.enabled || !options.deviceId) {

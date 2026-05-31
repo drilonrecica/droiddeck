@@ -1,4 +1,5 @@
-import { useInput } from "ink";
+import type { KeyEvent } from "@opentui/core";
+import { useKeyboard } from "@opentui/react";
 
 export type KeyboardActions = {
   onRun: () => void;
@@ -20,60 +21,51 @@ export type KeyboardActions = {
 };
 
 export function useKeyboardActions(actions: KeyboardActions, enabled = true): void {
-  useInput((input) => {
-    if (!enabled) {
+  useKeyboard((key) => {
+    if (!enabled || key.eventType !== "press") {
       return;
     }
 
-    switch (input) {
-      case "r":
-        actions.onRun();
-        break;
-      case "R":
-        actions.onCleanRun();
-        break;
-      case "v":
-        actions.onSelectVariant();
-        break;
-      case "d":
-        actions.onSelectDevice();
-        break;
-      case "c":
-        actions.onClear();
-        break;
-      case "l":
-        actions.onLaunch();
-        break;
-      case "k":
-        actions.onKill();
-        break;
-      case "u":
-        actions.onUninstall();
-        break;
-      case "t":
-        actions.onTest();
-        break;
-      case "s":
-        actions.onScreenshot();
-        break;
-      case "g":
-        actions.onLogs();
-        break;
-      case "D":
-        actions.onDoctor();
-        break;
-      case "?":
-        actions.onHelp();
-        break;
-      case "o":
-        actions.onOpenReport();
-        break;
-      case "C":
-        actions.onClearVisibleLogs();
-        break;
-      case "q":
-        actions.onQuit();
-        break;
+    if (isKey(key, "r") && !key.shift) {
+      actions.onRun();
+    } else if (isKey(key, "R") || (isKey(key, "r") && key.shift)) {
+      actions.onCleanRun();
+    } else if (isKey(key, "v")) {
+      actions.onSelectVariant();
+    } else if (isKey(key, "d") && !key.shift) {
+      actions.onSelectDevice();
+    } else if (isKey(key, "c") && !key.shift) {
+      actions.onClear();
+    } else if (isKey(key, "l")) {
+      actions.onLaunch();
+    } else if (isKey(key, "K") || (isKey(key, "k") && key.shift)) {
+      actions.onKill();
+    } else if (isKey(key, "u")) {
+      actions.onUninstall();
+    } else if (isKey(key, "t")) {
+      actions.onTest();
+    } else if (isKey(key, "s")) {
+      actions.onScreenshot();
+    } else if (isKey(key, "g")) {
+      actions.onLogs();
+    } else if (isKey(key, "D") || (isKey(key, "d") && key.shift)) {
+      actions.onDoctor();
+    } else if (isKey(key, "?")) {
+      actions.onHelp();
+    } else if (isKey(key, "o")) {
+      actions.onOpenReport();
+    } else if (isKey(key, "C") || (isKey(key, "c") && key.shift)) {
+      actions.onClearVisibleLogs();
+    } else if (isKey(key, "q")) {
+      actions.onQuit();
+    } else {
+      return;
     }
+
+    key.preventDefault();
   });
+}
+
+function isKey(key: KeyEvent, value: string): boolean {
+  return key.name === value || key.raw === value || key.sequence === value;
 }
