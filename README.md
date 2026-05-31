@@ -8,7 +8,7 @@ DroidDeck is intentionally local-only. It does not include telemetry, analytics,
 
 ## Status
 
-DroidDeck is currently an MVP. The CLI workflows and Ink-based TUI dashboard are implemented, but public testing is still early.
+DroidDeck is currently an MVP. The CLI workflows and OpenTUI-based dashboard are implemented, but public testing is still early.
 
 Recommended before broad use:
 
@@ -18,7 +18,8 @@ Recommended before broad use:
 
 ## Requirements
 
-- Node.js 20 or newer.
+- Bun 1.2 or newer for running DroidDeck.
+- Node.js 20 or newer for local package development and tests.
 - Android SDK platform-tools with `adb` on `PATH`.
 - A native Android project with a project-local `./gradlew`.
 - A complete Gradle wrapper, including `gradle/wrapper/gradle-wrapper.jar`.
@@ -41,13 +42,13 @@ pnpm pack
 This creates:
 
 ```text
-droiddeck-0.1.0.tgz
+droiddeck-0.1.2.tgz
 ```
 
 Install it globally on another machine:
 
 ```bash
-npm install -g ./droiddeck-0.1.0.tgz
+npm install -g ./droiddeck-0.1.2.tgz
 ```
 
 Then run from an Android project:
@@ -75,6 +76,46 @@ Useful packaging check:
 npm pack --dry-run
 ```
 
+## Homebrew
+
+DroidDeck is distributed through a personal Homebrew tap while the project is
+early and Bun is provided by Bun's own tap:
+
+```bash
+brew install drilonrecica/droiddeck/droiddeck
+```
+
+Maintainers need a public `drilonrecica/homebrew-droiddeck` repository and a
+`HOMEBREW_TAP_TOKEN` GitHub Actions secret with write access to that tap. Tagged
+releases update the tap formula automatically.
+
+## Samples
+
+Generic Android sample projects live in [samples](samples/README.md). The included
+`three-flavor-android` project has three product flavors (`free`, `staging`, and
+`paid`) across `debug` and `release` build types, giving DroidDeck six variants
+to discover.
+
+Start with:
+
+```bash
+cd samples/three-flavor-android
+bun ../../dist/index.js doctor
+bun ../../dist/index.js variants
+bun ../../dist/index.js
+```
+
+Expected sample variants include:
+
+```text
+freeDebug
+freeRelease
+stagingDebug
+stagingRelease
+paidDebug
+paidRelease
+```
+
 ## TUI
 
 Run from an Android project root or subdirectory:
@@ -82,6 +123,12 @@ Run from an Android project root or subdirectory:
 ```bash
 droiddeck
 ```
+
+The dashboard is keyboard navigable. Use Tab/Shift+Tab to move focus between
+variants, devices, build output, logs, and actions. Use arrows or j/k inside the
+focused panel, Enter to activate the highlighted row, Escape to return from
+secondary views, and q to quit. The v and d hotkeys still open the full variant
+and device pickers.
 
 Hotkeys:
 
@@ -92,7 +139,7 @@ v select variant
 d select device
 c clear app data
 l launch app
-k kill app
+K kill app
 u uninstall app, with confirmation
 t run selected variant unit tests
 s capture screenshot
@@ -211,7 +258,7 @@ Android projects should ignore local DroidDeck output:
 - Single selected device workflow.
 - Variant discovery is based on Gradle task output.
 - Application ID inference is conservative; ambiguous cases require config.
-- No release automation, upload flow, profiler dashboard, Android Studio plugin, or desktop GUI.
+- No profiler dashboard, Android Studio plugin, or desktop GUI.
 
 ## License
 

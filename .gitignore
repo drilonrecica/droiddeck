@@ -4,3 +4,4 @@ coverage/
 .droiddeck/
 *.log
 *.tgz
+SHA256SUMS

@@ -14,13 +14,15 @@ import { uninstallCommand } from "./commands/uninstall.js";
 import { useCommand } from "./commands/use.js";
 import { variantsCommand } from "./commands/variants.js";
 
+const version = "0.1.2";
+
 export async function runProgram(argv: string[]): Promise<void> {
   const program = new Command();
 
   program
     .name("droiddeck")
     .description("Terminal dashboard and CLI command center for native Android development.")
-    .version("0.1.0")
+    .version(version)
     .action(dashboardCommand);
 
   program.command("doctor").description("Run project and environment checks.").action(doctorCommand);
